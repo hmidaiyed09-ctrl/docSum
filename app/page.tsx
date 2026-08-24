@@ -5,7 +5,14 @@ import { useRouter } from "next/navigation";
 import SettingsModal from "@/components/SettingsModal";
 import { loadSettings, saveSettings } from "@/lib/settings";
 import { ingestFiles, isSupported, buildManifest } from "@/lib/ingest";
-import { idbSet } from "@/lib/idb";
+import {
+  deleteCourse,
+  getLibrary,
+  migrateLegacy,
+  saveCourseToLibrary,
+  type LibraryEntry,
+} from "@/lib/library";
+import { idbGet } from "@/lib/idb";
 import type { AISettings, Asset, Course } from "@/lib/types";
 
 const ACCEPTED =
@@ -27,9 +34,31 @@ export default function UploadPage() {
     visionModel: "",
   });
   const [dragOver, setDragOver] = useState(false);
+  const [library, setLibrary] = useState<Array<LibraryEntry & { progress: number }>>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => setSettings(loadSettings()), []);
+
+  // Load the saved-course library (with one-time legacy migration)
+  useEffect(() => {
+    (async () => {
+      await migrateLegacy();
+      const entries = await getLibrary();
+      const withProgress = await Promise.all(
+        entries.map(async (e) => ({
+          ...e,
+          progress: (await idbGet<number>(`progress:${e.id}`)) ?? 0,
+        }))
+      );
+      setLibrary(withProgress);
+    })();
+  }, []);
+
+  const removeCourse = async (id: string) => {
+    if (!window.confirm("Delete this saved course?")) return;
+    await deleteCourse(id);
+    setLibrary((l) => l.filter((e) => e.id !== id));
+  };
 
   const log = useCallback((msg: string) => {
     setLogs((l) => [...l.slice(-8), msg]);
@@ -147,11 +176,9 @@ export default function UploadPage() {
       }
       log("Course ready!");
 
-      // 5. Persist & navigate
-      await idbSet("assets", assets);
-      window.localStorage.setItem("docsum.course.v2", JSON.stringify(course));
-      window.localStorage.removeItem("docsum.progress");
-      router.push("/learn");
+      // 5. Persist to the library & navigate (revisitable anytime)
+      const courseId = await saveCourseToLibrary(course, assets);
+      router.push(`/learn?course=${courseId}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong.";
       setError(msg);
@@ -277,6 +304,42 @@ export default function UploadPage() {
         {error && (
           <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-left text-sm text-red-300">
             {error}
+          </div>
+        )}
+        {/* saved courses */}
+        {library.length > 0 && (
+          <div className="mt-8 w-full text-left">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
+              Your saved courses
+            </h2>
+            <div className="grid gap-3">
+              {library.map((e) => (
+                <div
+                  key={e.id}
+                  className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 transition hover:border-accent/50"
+                >
+                  <button
+                    onClick={() => router.push(`/learn?course=${e.id}`)}
+                    className="min-w-0 flex-1 text-left"
+                    title="Continue this course"
+                  >
+                    <p className="truncate font-medium text-white">{e.title}</p>
+                    <p className="truncate text-xs text-slate-400">
+                      {new Date(e.createdAt).toLocaleDateString()}
+                      {e.progress > 0 ? ` · saved at slide ${e.progress + 1}` : " · not started"}
+                      {e.subtitle ? ` · ${e.subtitle}` : ""}
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => removeCourse(e.id)}
+                    className="ml-3 shrink-0 rounded-lg px-2 py-1 text-slate-500 transition hover:text-red-400"
+                    title="Delete"
+                  >
+                    🗑
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

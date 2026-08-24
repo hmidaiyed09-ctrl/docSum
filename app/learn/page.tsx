@@ -6,6 +6,7 @@ import SlideRenderer, { type Step } from "@/components/SlideRenderer";
 import Markdown from "@/components/Markdown";
 import ProgressRing from "@/components/ProgressRing";
 import { idbGet } from "@/lib/idb";
+import { loadCourse, saveProgress } from "@/lib/library";
 import { loadSettings } from "@/lib/settings";
 import type { Asset, ChatMessage, Course } from "@/lib/types";
 
@@ -55,6 +56,7 @@ export default function LearnPage() {
   const router = useRouter();
   const [course, setCourse] = useState<Course | null>(null);
   const [assets, setAssets] = useState<Asset[]>([]);
+  const [courseId, setCourseId] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -74,28 +76,38 @@ export default function LearnPage() {
     return s;
   }, [course]);
 
-  // Load course + assets (v2 format)
+  // Load course + assets (by ?course=<id> from the library, with legacy fallback)
   useEffect(() => {
     let alive = true;
     (async () => {
-      const raw = window.localStorage.getItem("docsum.course.v2");
-      if (!raw) {
+      const id = new URLSearchParams(window.location.search).get("course") ?? "";
+      let data: { course: Course; assets: Asset[]; progress: number } | null = null;
+      if (id) data = await loadCourse(id);
+      if (!data) {
+        // legacy single-course fallback
+        const raw = window.localStorage.getItem("docsum.course.v2");
+        if (raw) {
+          try {
+            data = {
+              course: JSON.parse(raw) as Course,
+              assets: (await idbGet<Asset[]>("assets")) ?? [],
+              progress: Number(window.localStorage.getItem("docsum.progress") ?? 0),
+            };
+          } catch {
+            data = null;
+          }
+        }
+      }
+      if (!data) {
         router.replace("/");
         return;
       }
-      try {
-        const c = JSON.parse(raw) as Course;
-        const a = (await idbGet<Asset[]>("assets")) ?? [];
-        if (!alive) return;
-        setCourse(c);
-        setAssets(a);
-        const saved = Number(window.localStorage.getItem("docsum.progress") ?? "0");
-        setStepIdx(Number.isFinite(saved) ? saved : 0);
-      } catch {
-        router.replace("/");
-        return;
-      }
-      if (alive) setLoaded(true);
+      if (!alive) return;
+      setCourseId(id);
+      setCourse(data.course);
+      setAssets(data.assets);
+      setStepIdx(Number.isFinite(data.progress) ? data.progress : 0);
+      setLoaded(true);
     })();
     return () => {
       alive = false;
@@ -112,10 +124,10 @@ export default function LearnPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stepIdx, loaded]);
 
-  // Persist progress + autoscroll chat
+  // Persist progress (per saved course) + autoscroll chat
   useEffect(() => {
-    if (loaded) window.localStorage.setItem("docsum.progress", String(stepIdx));
-  }, [stepIdx, loaded]);
+    if (loaded && courseId) void saveProgress(courseId, stepIdx);
+  }, [stepIdx, loaded, courseId]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });

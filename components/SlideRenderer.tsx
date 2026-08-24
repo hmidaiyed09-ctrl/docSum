@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Markdown from "./Markdown";
+import { loadSettings } from "@/lib/settings";
 import type { Asset, Coverage, Course, Lesson } from "@/lib/types";
 
 export type Step =
@@ -94,14 +96,118 @@ function CoverSlide({ course }: { course: Course }) {
 }
 
 function DoneSlide({ course }: { course: Course }) {
+  const [open, setOpen] = useState(false);
+  const [summary, setSummary] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const generate = async () => {
+    setOpen(true);
+    setBusy(true);
+    setError("");
+    setSummary("");
+    setCopied(false);
+    try {
+      const res = await fetch("/api/summarize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings: loadSettings(), course }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Summary generation failed.");
+      setSummary(data.summary);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Summary generation failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(summary);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable */
+    }
+  };
+
+  const download = () => {
+    const blob = new Blob([summary], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${course.title || "docsum-summary"}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="fade-up flex h-full w-full flex-col items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-panel to-card p-12 text-center shadow-2xl">
       <div className="text-6xl">🎉</div>
       <h1 className="mt-6 text-4xl font-bold text-white">Course complete!</h1>
       <p className="mt-4 max-w-md text-slate-300">
-        You finished <strong className="text-white">{course.title}</strong>. You can go back with the
-        arrows to review any slide, or upload a new document from the home page.
+        You finished <strong className="text-white">{course.title}</strong>. Review any slide with
+        the arrows, grab the summary of the important points, or upload a new document from the home
+        page.
       </p>
+      <button
+        onClick={generate}
+        disabled={busy}
+        className="mt-6 rounded-xl bg-accent px-6 py-3 font-medium text-white transition enabled:hover:bg-accent-deep disabled:opacity-50"
+      >
+        {busy ? "Writing your summary…" : "📝 Generate summary"}
+      </button>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+          onClick={() => !busy && setOpen(false)}
+        >
+          <div
+            className="fade-up flex max-h-[85vh] w-full max-w-2xl flex-col rounded-2xl border border-white/10 bg-panel shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
+              <h2 className="font-semibold text-white">Document summary</h2>
+              <button onClick={() => setOpen(false)} className="text-slate-400 transition hover:text-white">
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-5 text-left">
+              {error && (
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
+                  {error}
+                </div>
+              )}
+              {busy && (
+                <p className="text-sm text-slate-400">
+                  Reading the whole course and writing the summary… this takes a moment.
+                </p>
+              )}
+              {summary && <Markdown>{summary}</Markdown>}
+            </div>
+            {summary && (
+              <div className="flex justify-end gap-2 border-t border-white/10 px-5 py-3">
+                <button
+                  onClick={download}
+                  className="rounded-lg border border-white/15 px-4 py-2 text-sm text-slate-200 transition hover:bg-white/10"
+                >
+                  ⬇ Download .md
+                </button>
+                <button
+                  onClick={copy}
+                  className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-deep"
+                >
+                  {copied ? "✓ Copied" : "📋 Copy"}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

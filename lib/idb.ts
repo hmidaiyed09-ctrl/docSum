@@ -26,3 +26,7 @@ export async function idbSet(key: string, value: unknown): Promise<void> {
 export async function idbGet<T>(key: string): Promise<T | undefined> {
   return withStore<T | undefined>("readonly", (s) => s.get(key));
 }
+
+export async function idbDel(key: string): Promise<void> {
+  await withStore("readwrite", (s) => s.delete(key));
+}
