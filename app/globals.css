@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+/* ---------- scrollbars ---------- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #2c2c44;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3d3d5c;
+}
+
+/* ---------- markdown (chat narration) ---------- */
+.md {
+  @apply text-[17px] leading-[1.75] text-slate-200;
+  font-family: Georgia, "Times New Roman", serif;
+}
+.md > * + * {
+  margin-top: 0.9rem;
+}
+.md h1, .md h2, .md h3, .md h4 {
+  @apply font-sans font-semibold text-white;
+}
+.md h1 { @apply text-xl mt-5; }
+.md h2 { @apply text-lg mt-5; }
+.md h3 { @apply text-base mt-4; }
+.md strong {
+  @apply font-bold text-white;
+}
+.md ul, .md ol {
+  @apply pl-6 space-y-1;
+}
+.md ul { list-style: disc; }
+.md ol { list-style: decimal; }
+.md li::marker {
+  color: #7c6ff0;
+}
+.md a {
+  @apply text-indigo-300 underline;
+}
+.md code {
+  @apply rounded bg-white/10 px-1.5 py-0.5 text-[13px];
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.md pre {
+  @apply overflow-x-auto rounded-lg bg-black/50 p-3;
+}
+.md pre code {
+  @apply bg-transparent p-0;
+}
+.md blockquote {
+  @apply border-l-2 border-accent pl-3 italic text-slate-300;
+}
+
+/* ---------- animations ---------- */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up {
+  animation: fade-up 0.35s ease both;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+.typing-dot {
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
