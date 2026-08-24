@@ -163,7 +163,7 @@ function CoverageSlide({
     <div className="flex h-full min-h-0 flex-col">
       <iframe
         title="AI-generated visual"
-        sandbox=""
+        sandbox="allow-scripts"
         srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>
           html,body{margin:0;padding:18px;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#151527 !important;color:#e2e8f0 !important;font-size:18px;line-height:1.6;}
           ${enforceDark(html.css ?? "")}

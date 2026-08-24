@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { chatStream } from "@/lib/ai-server";
+import { TUTOR_PERSONA } from "@/lib/prompt";
 import type { AISettings, ChatMessage } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -20,7 +21,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No messages provided." }, { status: 400 });
     }
 
-    const upstream = await chatStream(settings, messages, { temperature: 0.6 });
+    // Inject the tutor persona into the system message (client sends course/slide context there).
+    const msgs: ChatMessage[] = [...messages];
+    if (msgs[0]?.role === "system") {
+      msgs[0] = { role: "system", content: `${TUTOR_PERSONA}\n\n${String(msgs[0].content)}` };
+    } else {
+      msgs.unshift({ role: "system", content: TUTOR_PERSONA });
+    }
+
+    const upstream = await chatStream(settings, msgs, { temperature: 0.6 });
 
     if (!upstream.ok || !upstream.body) {
       const body = await upstream.text().catch(() => "");

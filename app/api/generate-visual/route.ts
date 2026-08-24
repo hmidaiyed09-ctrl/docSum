@@ -24,13 +24,14 @@ You receive:
 Decide:
 - "showSource": keep the chosen source page(s) as the slide's main visual? true ONLY if they genuinely teach this coverage (readable, relevant, not already shown elsewhere).
 - "layout": "source-primary" (the pages are the star), "visual-primary" (your graphic is the star), or "split" (both, side by side).
-- "html": an optional self-contained HTML/CSS graphic (diagram, comparison table, timeline, flow). Provide it when the source is weak or absent, or as a compact companion in "split". No <script>, no external resources, no <img>. Base font-size 18px, never below 15px anywhere. Keep it compact and readable.
+- "html": an optional self-contained HTML/CSS/JS widget (diagram, comparison table, timeline, flow, interactive explainer). Provide it when the source is weak or absent, or as a compact companion in "split". No external resources, no <img>. Base font-size 18px, never below 15px anywhere. Keep it compact and readable.
+  INTERACTIVITY — strongly encouraged, the slide runs in a sandbox that allows scripts. Use inline <script> to build widgets that make the student ACT, not just look: clickable tabs, accordions, hover reveals, step-through animations (a "Next step" button), self-checking mini-quizzes (input + "Check" button + instant feedback), order/compare games. Keep JavaScript simple, self-contained and defensive; no fetch/XHR, no external libraries, no localStorage, no infinite loops. A purely static diagram is acceptable only when interactivity truly adds nothing.
   STRICT COLOR RULES — the slide canvas is always dark (#151527); a white or light background is FORBIDDEN and will be stripped:
   * Base text: #e2e8f0. Inside a colored box: white text on dark fills, #1e293b text on bright fills.
   * Allowed accent colors (all dark-theme safe): red #ef4444, green #22c55e, blue #3b82f6, amber #f59e0b, purple #a855f7, teal #14b8a6, slate #334155, indigo #7c6ff0.
   * Use colors semantically and consistently across the whole course (e.g. green = correct/positive, red = wrong/negative, amber = warning, blue = definition, indigo = emphasis).
   * Never light text on a light fill; never dark text directly on the dark background; never a white background.
-- "why": 1–2 sentences explaining your decision — shown to the student as "Why this slide".
+- "why": 1–2 sentences explaining your decision — shown to the student as "Why this slide". Write it (and any caption) in very simple words and short sentences, with an encouraging tone.
 
 You may VETO the planner: if a chosen page is poor (unreadable, off-topic, duplicate), set showSource=false and generate the visual instead — and say why.
 

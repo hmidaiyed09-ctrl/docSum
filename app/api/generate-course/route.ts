@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { chat } from "@/lib/ai-server";
+import { TEACHING_STYLE } from "@/lib/prompt";
 import type { AISettings, Coverage, Course, CourseAssetInfo, Lesson, SourceRef } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -10,9 +11,13 @@ const SYSTEM_PROMPT = `You are DocSum, an AI tutor that converts a student's upl
 You receive a JSON manifest of assets: PDF pages (text-extracted or image-transcribed), images, text and code files. Every asset has an "index" — use it as "assetId" when referencing it.
 
 Your job: build the WHOLE subject now — every lesson and, inside each lesson, every coverage (sub-topic). For each coverage you produce:
-- "content": the markdown text displayed and narrated to the student. Teach clearly and completely: definition, intuition, example. Short paragraphs, **bold** key terms.
+- "content": the markdown text displayed and narrated to the student. Teach clearly and completely, always following this pattern: Concept → Example (real-life) → Why it matters → Quick recap. Short paragraphs, **bold** key terms.
 - "source": the page(s) of the student's material to DISPLAY on this coverage's slide. 0 to 3 entries: {"assetId": <exact index>, "why": "<what it shows> + <why it is the right one>"}. The "why" is MANDATORY — you are forced to reason about the choice. If no page genuinely helps, use an empty array.
 - "needsVisual": true when an AI-generated diagram/graphic would help (weak or missing source, abstract concept), false when the source pages already teach it well.
+
+${TEACHING_STYLE}
+
+Apply this style to every "content", "intro" and "why" you write. The most important ideas come first (80/20); mark optional challenges clearly as optional.
 
 Output STRICT JSON only — no markdown fences, no commentary:
 {
